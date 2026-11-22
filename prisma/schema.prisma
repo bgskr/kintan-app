@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AttendanceStatus {
+  PRESENT
+  HALF_DAY
+}
+
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("users")
+}
+
+model Member {
+  id             String          @id @default(uuid())
+  fullName       String          @map("full_name")
+  roleOrDivision String?         @map("role_or_division")
+  phoneNumber    String?         @map("phone_number")
+  dailyWage      Int             @map("daily_wage")
+  isActive       Boolean         @default(true) @map("is_active")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  attendances    Attendance[]
+  payrollRecords PayrollRecord[]
+
+  @@map("members")
+}
+
+model Attendance {
+  id             String           @id @default(uuid())
+  memberId       String           @map("member_id")
+  attendanceDate DateTime         @map("attendance_date") @db.Date
+  status         AttendanceStatus @default(PRESENT)
+  notes          String?
+  createdAt      DateTime         @default(now()) @map("created_at")
+  member         Member           @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([memberId, attendanceDate])
+  @@index([attendanceDate])
+  @@map("attendances")
+}
+
+model PayrollRecord {
+  id               String   @id @default(uuid())
+  memberId         String   @map("member_id")
+  periodStart      DateTime @map("period_start") @db.Date
+  periodEnd        DateTime @map("period_end") @db.Date
+  totalDays        Int      @map("total_days")
+  appliedDailyWage Int      @map("applied_daily_wage")
+  totalPayout      Int      @map("total_payout")
+  isPaid           Boolean  @default(false) @map("is_paid")
+  createdAt        DateTime @default(now()) @map("created_at")
+  member           Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId, periodStart, periodEnd])
+  @@map("payroll_records")
+}
